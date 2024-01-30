@@ -21,9 +21,9 @@ export default defineEventHandler(async (event) => {
   if (stripeEvent.type && stripeEvent.type.startsWith('customer.subscription')) {
     const subscription = stripeEvent.data.object as Stripe.Subscription
     try {
-      const org = await stripeService.getOrgForCustomerId(subscription.customer.toString())
+      const user = await stripeService.getUserForCustomerId(subscription.customer.toString())
       const product = await stripeService.getProduct(subscription.items.data[0].plan.product?.toString() ?? 'X')
-      orgService.saveSubscription(org, subscription, product)
+      await userService.saveSubscription(user, subscription, product)
     }
     catch (error) {
       console.error(error)

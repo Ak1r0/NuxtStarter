@@ -4,6 +4,7 @@ const layout = () => route?.path?.startsWith('/app') ? 'app' : 'default'
 </script>
 
 <template>
+  <NuxtLoadingIndicator />
   <NuxtLayout :name="layout()">
     <NuxtPage />
   </NuxtLayout>

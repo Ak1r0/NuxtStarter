@@ -1,8 +1,7 @@
-import type { User } from 'lucia'
+import type {User} from 'lucia'
 
 export function useUser() {
-  const user = useState<User | null>('user', () => null)
-  return user
+  return useState<User | null>('user', () => null)
 }
 
 export function useAuthenticatedUser() {

@@ -36,7 +36,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 </script>
 
 <template>
-  <h1 class="text-3xl font-medium mb-4 text-center mt-12 lg:mt-52 my-8">
+  <h1 class="text-3xl font-medium mb-4 text-center mt-12 my-8">
     Sign up
   </h1>
   <UCard class="max-w-sm mx-auto">

@@ -1,5 +1,6 @@
-import { and, eq } from 'drizzle-orm'
-import type { Org, OrgMember } from '../database/schema'
+import {and, eq, gte} from 'drizzle-orm'
+import type {Product, User} from '../database/schema'
+import type Stripe from "stripe";
 
 class UserService {
   async getById(id: string) {
@@ -12,48 +13,38 @@ class UserService {
     return user
   }
 
-  async getInvites(email: string, role?: OrgMember['role']) {
-    const invites = await db.select().from(tables.orgInvitation).where(eq(tables.orgInvitation.email, email))
-    if (role)
-      return invites.filter(invite => invite.role === role)
-    return invites
+  async getLinks(user: User) {
+    return db.select().from(tables.link)
+        .where(eq(tables.link.userId, user.id));
   }
 
-  async autoAcceptInvitations(email: string) {
-    const invites = await db.select().from(tables.orgInvitation).where(and(eq(tables.orgInvitation.email, email), eq(tables.orgInvitation.autoAccept, true)))
-    if (!invites.length)
-      return false
-    invites.forEach(async invite => await orgService.acceptInvites(invite))
-    await db.delete(tables.orgInvitation).where(eq(tables.orgInvitation.email, email))
-    return true
+  async getLibs(user: User) {
+    return db.select().from(tables.library)
+        .where(eq(tables.library.userId, user.id));
   }
 
-  async getDefaultUserRole(userId: string) {
-    const defaultRole = (await this.getUserRoles(userId)).find(ur => ur.default)
-    if (defaultRole)
-      return defaultRole
-    const org = await orgService.create(userId, 'owner')
-    const userRole = await orgService.addMember(org.id, userId, 'owner')
-    if (!userRole)
-      return null
-    return this.reduceUserRoles([{ org_member: userRole, org }])[0]
+  async saveSubscription(user: User, stripeSubscription: Stripe.Subscription, product: Product) {
+    const code = product.code
+    const name = product.name
+
+    if(!code || !name) throw new Error('Missing product code or name');
+
+    const interval = stripeSubscription.items.data[0].plan.interval as string
+    const stripeCustomerId = stripeSubscription.customer as string
+    const stripeSubscriptionId = stripeSubscription.id
+    const expires = stripeSubscription.current_period_end * 1000
+    const userId = user.id
+
+    const [subscription] = await db.insert(tables.subscription)
+        .values({ code, name, stripeCustomerId, stripeSubscriptionId, interval, expires, userId  })
+        .onConflictDoUpdate({ target: tables.subscription.stripeSubscriptionId, set: { code, name, stripeSubscriptionId, interval, expires } }).returning()
+
+    return subscription
   }
 
-  async getUserRoles(userId: string) {
-    const userRoles = await db.select().from(tables.orgMember)
-      .innerJoin(tables.org, eq(tables.org.id, tables.orgMember.orgId))
-      .where(eq(tables.orgMember.userId, userId))
-    return this.reduceUserRoles(userRoles)
-  }
-
-  private reduceUserRoles(userRoles: { org_member: OrgMember, org: Org }[]) {
-    return userRoles.map((userRole) => {
-      return {
-        role: userRole.org_member.role,
-        default: userRole.org.id === userRole.org_member.userId,
-        org: userRole.org,
-      }
-    })
+  async getSubscription(user: User) {
+    const [subscription] = await db.select().from(tables.subscription).where(and(eq(tables.subscription.userId, user.id), gte(tables.subscription.expires, Date.now())))
+    return subscription
   }
 }
 

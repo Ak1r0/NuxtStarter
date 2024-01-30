@@ -1,54 +1,54 @@
-import * as adapter from '@lucia-auth/adapter-postgresql'
-import { google } from '@lucia-auth/oauth/providers'
-import { lucia } from 'lucia'
-import { h3 } from 'lucia/middleware'
+import type { User } from "~/server/database/schema";
+import type {H3EventContext} from "h3";
+import {Lucia} from 'lucia'
 import process from 'node:process'
-import postgres from 'postgres'
-import { userService } from './user'
+import { webcrypto } from "node:crypto";
+import {uid} from "uid/secure";
+import { Argon2id } from "oslo/password";
+import {DrizzlePostgreSQLAdapter} from "@lucia-auth/adapter-drizzle";
 
-const PASS_AUTH_KEY = 'password'
-const config = useRuntimeConfig()
+// Lucia Polyfill is node < 20
+globalThis.crypto = webcrypto as Crypto;
 
-const sql = postgres(config.databaseUrl)
-const auth = lucia({
-  env: process.dev ? 'DEV' : 'PROD',
-  middleware: h3(),
-  adapter: adapter.postgres(sql, {
-    user: 'auth_user',
-    key: 'user_key',
-    session: 'user_session',
-  }),
-  getUserAttributes: (user) => {
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
+const luciaAdapter = new DrizzlePostgreSQLAdapter(db, tables.session, tables.user);
+
+export const lucia = new Lucia(luciaAdapter, {
+  sessionCookie: {
+    // IMPORTANT!
+    attributes: {
+      // set to `true` when using HTTPS
+      secure: !process.dev,
+      sameSite: "strict",
     }
   },
+  getUserAttributes: (attributes) => {
+    return {
+      name: attributes.name
+    };
+  }
 })
 
-export const googleAuth = google(auth, {
-  clientId: config.google.clientId,
-  clientSecret: config.google.clientSecret,
-  scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
-  redirectUri: `${config.public.url}/auth/google/callback`,
-})
+declare module "lucia" {
+  interface Register {
+    Lucia: typeof lucia;
+    DatabaseUserAttributes: User
+  }
+}
 
-export type Auth = typeof auth
+// export const googleAuth = google(auth, {
+//   clientId: config.google.clientId,
+//   clientSecret: config.google.clientSecret,
+//   scope: ['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile'],
+//   redirectUri: `${config.public.url}/auth/google/callback`,
+// })
 
 class AuthService {
   async createUser(name: string, email: string, password = '') {
     try {
-      const user = await auth.createUser({
-        key: { providerId: PASS_AUTH_KEY, providerUserId: email.toLowerCase(), password },
-        attributes: { name, email },
-      })
-
-      if (!await userService.autoAcceptInvitations(email)) {
-        const org = await orgService.create(name, email, user.id)
-        await orgService.addMember(org.id, user.id, 'owner')
-      }
-      return user
+      const userId = uid();
+      const hashedPassword = await new Argon2id().hash(password);
+      const [user] = await db.insert(tables.user).values({id: userId, name, email, hashedPassword}).returning() as User[];
+      return user;
     }
     catch (e) {
       console.error(`error creating user: ${email}`, e)
@@ -56,37 +56,47 @@ class AuthService {
     }
   }
 
-  async createSession(userId: string, event: any) {
+  async createSession(user: User, event: any) {
     try {
-      const session = await auth.createSession({ userId, attributes: {} })
-      const authRequest = auth.handleRequest(event)
-      authRequest.setSession(session)
-      await userService.autoAcceptInvitations(session.user.email)
+      const session = await lucia.createSession(user.id, {})
+      appendHeader(event, "Set-Cookie", lucia.createSessionCookie(session.id).serialize());
       return session
     }
     catch (e) {
-      console.error(`error creating session: ${userId}`, e)
+      console.error(`error creating session: ${user.id}`, e)
       return null
     }
   }
 
-  async getSession(event: any) {
-    const authRequest = auth.handleRequest(event)
-    return authRequest.validate()
+  getAuthenticatedUser(event: H3EventContext) {
+    return event.context.user as User;
   }
 
   async logout(event: any) {
-    const authRequest = auth.handleRequest(event)
-    const session = await authRequest.validate()
-    if (session) {
-      await auth.invalidateSession(session.sessionId)
-      authRequest.setSession(null)
+    if (!event.context.session) {
+      throw createError({
+        statusCode: 403
+      });
     }
+    await lucia.invalidateSession(event.context.session.id);
+    appendHeader(event, "Set-Cookie", lucia.createBlankSessionCookie().serialize());
   }
 
   async passwordLogin(event: any, email: string, password: string) {
-    const key = await auth.useKey(PASS_AUTH_KEY, email.toLowerCase(), password)
-    return this.createSession(key.userId, event)
+
+    const user = await userService.getByEmail(email);
+    if (!user) {
+      await new Argon2id().verify('azertyuiop', password); // Time attack protection
+      return false;
+    }
+
+    const validPassword = await new Argon2id().verify(user.hashedPassword, password);
+    if (!validPassword) {
+      return false;
+    }
+
+    const session = this.createSession(user, event)
+    return !!session;
   }
 }
 

@@ -1,9 +1,10 @@
+import { userService } from '~/server/utils/user'
+
 export default defineEventHandler(async (event) => {
   const user = authService.getAuthenticatedUser(event)
   if (!user)
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  const libs = await userService.getLibs(user)
 
-  const customer = await stripeService.getCustomer(user)
-  const portalSession = await stripeService.createPortalSession(customer.id)
-  return sendRedirect(event, portalSession.url ?? '/', 302)
+  return { libs }
 })

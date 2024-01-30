@@ -27,7 +27,7 @@ cp .env.example .env
 If you don't alread have a Postgres database, spin one up quickly with docker.
 
 ```bash
-docker run --name postgres -e POSTGRES_PASSWORD=postgres -d postgres
+docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres
 ```
 
 ## Development Server

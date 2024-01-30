@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { authService } from '~/server/utils/auth'
 
 const userSchema = z.object({
   name: z.string({ description: 'Enter your name' }).min(1, 'Enter your name'),
   email: z.string({ description: 'Email required' }).email('Invalid email'),
-  password: z.string({ description: 'Password required' }).min(8, 'Password should be at least 8 characters'),
+  password: z.string({ description: 'Password required' }).min(8, 'Password should be at least 8 characters')
+      .regex(/[A-Z]/, 'Password should contain at least one uppercase letter' )
 })
 
 export default defineEventHandler(async (event) => {
@@ -14,11 +14,15 @@ export default defineEventHandler(async (event) => {
 
   const { name, email, password } = u.data
   const user = await authService.createUser(name, email, password)
-  if (!user)
+
+  if (!user) //todo
     return reply(event, false, 401, 'User already exists')
 
-  const session = user ? await authService.createSession(user.userId, event) : null
+  await libService.create("My Library", user, true)
+
+  const session = user ? await authService.createSession(user, event) : null
   return reply(event, !!session)
+  // return reply(event, true)
 })
 
 function reply(event: any, success: boolean, code = 200, message = '') {

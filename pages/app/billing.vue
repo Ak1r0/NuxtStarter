@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { data } = await useOrgData()
 
-const portalUrl = computed(() => `/stripe/portal?slug=${data.value?.org.slug}`)
+const portalUrl = computed(() => `/stripe/portal`)
 </script>
 
 <template>

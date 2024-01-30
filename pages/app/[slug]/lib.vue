@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const route = useRoute()
 const user = useAuthenticatedUser()
-const { data, refresh } = useFetch(() => `/api/orgs/${route.params.slug}/members`)
+const { data, refresh } = useFetch(() => `/api/libs/${route.params.slug}/links`)
 
 const roles = ['owner', 'member']
 const tabs = [{ label: 'Members', key: 'members' }, { label: 'Invited', key: 'invited' }]
@@ -32,7 +32,7 @@ async function changeRole() {
 
 <template>
   <h1 class="text-lg font-medium mb-4">
-    Team
+    Library
   </h1>
   <div class="mt-8 my-4">
     <AppInviteMemberButton @complete="refresh" />

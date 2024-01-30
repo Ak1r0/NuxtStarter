@@ -1,6 +1,7 @@
+import type { User } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import Stripe from 'stripe'
-import type { Org } from '../database/schema'
+import {userService} from "~/server/utils/user";
 
 const config = useRuntimeConfig()
 
@@ -50,20 +51,20 @@ class StripeService {
     return products
   }
 
-  async createCustomer(org: Org) {
-    const customer = await stripe.customers.create({ name: org.name, email: org.email })
-    await db.insert(tables.stripeCustomer).values({ id: customer.id, orgId: org.id, email: org.email })
+  async createCustomer(user: User) {
+    const customer = await stripe.customers.create({ name: user.name, email: user.email })
+    await db.insert(tables.stripeCustomer).values({ id: customer.id, userId: user.id, email: user.email })
     return customer
   }
 
-  async getCustomer(org: Org) {
-    const [customer] = await db.select().from(tables.stripeCustomer).where(eq(tables.stripeCustomer.orgId, org.id))
-    return customer ?? this.createCustomer(org)
+  async getCustomer(user: User) {
+    const [customer] = await db.select().from(tables.stripeCustomer).where(eq(tables.stripeCustomer.userId, user.id))
+    return customer ?? this.createCustomer(user)
   }
 
-  async getOrgForCustomerId(customerId: string) {
-    const [orgCustomer] = await db.select().from(tables.org).leftJoin(tables.stripeCustomer, eq(tables.org.id, tables.stripeCustomer.orgId)).where(eq(tables.stripeCustomer.id, customerId))
-    return orgCustomer?.org
+  async getUserForCustomerId(customerId: string) {
+    const [userCustomer] = await db.select().from(tables.user).leftJoin(tables.stripeCustomer, eq(tables.user.id, tables.stripeCustomer.userId)).where(eq(tables.stripeCustomer.id, customerId))
+    return userCustomer?.auth_user
   }
 
   async createCheckoutSession(priceId: string, customerId?: string) {
@@ -81,10 +82,10 @@ class StripeService {
     })
   }
 
-  async createPortalSession(stripeCustomerId: string, orgSlug: string) {
+  async createPortalSession(stripeCustomerId: string) {
     return stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${config.public.url}/app/${orgSlug}/billing`,
+      return_url: `${config.public.url}/app/billing`,
     })
   }
 
@@ -93,16 +94,11 @@ class StripeService {
     if (!session.status || session.status !== 'complete' || !session.customer)
       return
     const stripeCustomerId = session.customer as string
-    let org = await this.getOrgForCustomerId(stripeCustomerId)
-    if (!org) { // user paid for subscription before creating an account
-      org = await orgService.create(session.customer_details?.name ?? '', session.customer_details?.email ?? '')
-      await orgService.createInvite(org.id, session.customer_details?.email ?? '', 'owner')
-      await this.createCustomer(org)
-    }
+    let user = await this.getUserForCustomerId(stripeCustomerId)
     const stripeSubscription = session.subscription as Stripe.Subscription
     const productId = stripeSubscription.items.data[0].price.product as string
     const [product] = await db.select().from(tables.product).where(eq(tables.product.id, productId))
-    await orgService.saveSubscription(org, stripeSubscription, product)
+    await userService.saveSubscription(user, stripeSubscription, product)
     return session
   }
 
