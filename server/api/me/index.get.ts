@@ -1,4 +1,9 @@
 export default defineEventHandler(async (event) => {
-  return authService.getAuthenticatedUser(event)
+  const user = authService.getAuthenticatedUser(event);
 
+  if(!user) {
+    throw createError({ statusCode: 401, message: 'Unauthorized' });
+  }
+
+  return { user };
 })

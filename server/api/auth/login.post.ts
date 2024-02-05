@@ -1,5 +1,4 @@
-import { z, ZodIssue } from 'zod'
-import type {H3Error, H3Event } from "h3";
+import { z } from 'zod'
 
 const userSchema = z.object({
   email: z.string({ description: 'Email required' }).email('Invalid email'),
@@ -8,21 +7,15 @@ const userSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  const u = await readValidatedBody(event, userSchema.safeParse)
+  const u = await readValidatedBody(event, userSchema.safeParse);
   if (!u.success) {
     throw createError({ statusCode: 400, data: u.error.errors })
   }
 
-  const { email, password } = u.data
+  const { email, password } = u.data;
 
-  if(! await authService.passwordLogin(event, email, password)) {
+  const login = await authService.passwordLogin(event, email, password);
+  if(! login) {
     throw createError({ statusCode: 401, message: 'Invalid email or password' })
   }
 })
-
-
-type ReplyType = {event: H3Event, code?: number, message?: string, errors?: ZodIssue[]};
-function reply({event, code = 200, message = '', errors = []} : ReplyType) {
-  setResponseStatus(event, code)
-  return { message, form: errors };
-}

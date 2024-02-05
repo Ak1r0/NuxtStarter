@@ -1,5 +1,5 @@
 import type { User } from "~/server/database/schema";
-import type {H3EventContext} from "h3";
+import type {H3Event} from "h3";
 import {Lucia} from 'lucia'
 import process from 'node:process'
 import { webcrypto } from "node:crypto";
@@ -58,9 +58,9 @@ class AuthService {
 
   async createSession(user: User, event: any) {
     try {
-      const session = await lucia.createSession(user.id, {})
+      const session = await lucia.createSession(user.id, {});
       appendHeader(event, "Set-Cookie", lucia.createSessionCookie(session.id).serialize());
-      return session
+      return session;
     }
     catch (e) {
       console.error(`error creating session: ${user.id}`, e)
@@ -68,7 +68,7 @@ class AuthService {
     }
   }
 
-  getAuthenticatedUser(event: H3EventContext) {
+  getAuthenticatedUser(event: H3Event) {
     return event.context.user as User;
   }
 
@@ -95,7 +95,7 @@ class AuthService {
       return false;
     }
 
-    const session = this.createSession(user, event)
+    const session = await this.createSession(user, event)
     return !!session;
   }
 }
