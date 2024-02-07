@@ -13,16 +13,6 @@ class UserService {
     return user
   }
 
-  async getLinks(user: User) {
-    return db.select().from(tables.link)
-        .where(eq(tables.link.userId, user.id));
-  }
-
-  async getLibs(user: User) {
-    return db.select().from(tables.library)
-        .where(eq(tables.library.userId, user.id));
-  }
-
   async saveSubscription(user: User, stripeSubscription: Stripe.Subscription, product: Product) {
     const code = product.code
     const name = product.name

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-const user = useUser()
-const route = useRoute()
+const localePath = useLocalePath();
+const user = useUser();
+const route = useRoute();
 const items = computed(() => [
   [{
     label: user.value?.email ?? '',
@@ -8,17 +9,17 @@ const items = computed(() => [
     disabled: true,
   }],
   [{
-    label: 'Profile',
+    label: $t('profile'),
     icon: 'i-heroicons-cog-8-tooth',
     to: '/app/profile',
   }],
   [{
-    label: 'Sign out',
+    label: $t('signOut'),
     icon: 'i-heroicons-arrow-left-on-rectangle',
     external: true,
     to: '/logout',
   }],
-])
+]);
 </script>
 
 <template>
@@ -33,7 +34,7 @@ const items = computed(() => [
       <template #account="{ item }">
         <div class="text-left">
           <p>
-            Signed in with
+            {{ $t('signedWith') }}
           </p>
           <p class="truncate font-medium">
             {{ item.label }}
@@ -50,10 +51,10 @@ const items = computed(() => [
   </div>
   <div v-else>
     <NuxtLink
-      to="/login"
+      :to="localePath('/login')"
       class="py-3 px-4 text-center border border-gray-200 dark:border-gray-800 rounded-md block lg:inline lg:border-0"
     >
-      Login
+      {{ $t('login') }}
     </NuxtLink>
   </div>
 </template>

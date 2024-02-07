@@ -3,7 +3,6 @@ import process from 'node:process'
 export default defineNuxtConfig({
   devtools: {
     enabled: true,
-
     timeline: {
       enabled: true,
     },
@@ -12,6 +11,9 @@ export default defineNuxtConfig({
     databaseUrl: '',
     public: {
       url: '',
+      sentry: {
+        dsn: '',
+      }
     },
     google: {
       clientId: '',
@@ -23,7 +25,12 @@ export default defineNuxtConfig({
       webhookSecret: '',
     },
   },
-  modules: ['@nuxt/ui', '@formkit/auto-animate/nuxt', '@nuxtjs/plausible'],
+  modules: [
+    '@nuxt/ui',
+    '@formkit/auto-animate/nuxt',
+    '@nuxtjs/plausible',
+    '@nuxtjs/i18n',
+  ],
   ui: {
     global: true,
     icons: ['solar', 'tabler', 'octicon', 'devicon', 'logos'],
@@ -34,4 +41,20 @@ export default defineNuxtConfig({
     apiHost: process.env.PLAUSIBLE_API_HOST ?? 'https://plausible.io',
     trackLocalhost: true,
   },
+
+  i18n: {
+    strategy: 'prefix_except_default',
+    defaultLocale: 'en',
+    baseUrl: process.env.NUXT_PUBLIC_URL,
+    locales: [
+      {
+        code: 'en',
+        iso: 'en-US'
+      },
+      {
+        code: 'fr',
+        iso: 'fr-FR'
+      }
+    ]
+  }
 })

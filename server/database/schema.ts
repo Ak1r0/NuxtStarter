@@ -46,31 +46,3 @@ export const subscription = pgTable('stripe_subscription', {
   expires: bigint('expires', { mode: 'number' }).notNull(),
   userId: varchar('user_id').notNull().references(() => user.id),
 })
-
-export const library = pgTable('library', {
-  id: varchar('id').primaryKey(),
-  name: varchar('name').notNull(),
-  slug: varchar('slug').notNull(),
-  isPublic: boolean('is_public').default(true).notNull(),
-  createdAt: timestamp('created_at', { mode: "date" }).notNull().defaultNow(),
-  userId: varchar('user_id').notNull().references(() => user.id),
-})
-export type Library = typeof library.$inferSelect
-
-export const statusEnum = pgEnum('status', ['broken', 'active', 'checking', 'deleted']);
-
-export const link = pgTable('link', {
-  id: varchar('id').primaryKey(),
-  title: varchar('name'),
-  url: varchar('url').notNull(),
-  description: text('description'),
-  status: statusEnum('status').default('checking').notNull(),
-  createdAt: timestamp('created_at', { mode: "date" }).notNull().defaultNow(),
-  lastCheckAt: timestamp('last_check_at', { mode: "date" }).notNull().defaultNow(),
-  hash: varchar('hash').notNull().unique(),
-  userId: varchar('user_id').notNull().references(() => user.id),
-  libraryId: varchar('library_id').notNull().references(() => library.id),
-}, (t) => ({
-  unq: unique().on(t.userId, t.url),
-}))
-export type Link = typeof link.$inferSelect

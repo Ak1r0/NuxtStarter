@@ -1,5 +1,11 @@
 # UseNuxt Starter
 
+- Logging : [Logrocket](https://logrocket.com/) : https://nuxt.com/modules/logrocket
+- Analytics : [Plausible](https://plausible.io/) : 
+- Translation : [i18n](https://i18n.nuxtjs.org/) : https://nuxt.com/modules/i18n
+- Authentication : [Lucia](https://lucia-auth.com/)
+- ORM : [Drizzle](https://orm.drizzle.team/)
+
 ## Setup
 
 Make sure to install the dependencies:
@@ -13,9 +19,6 @@ pnpm install
 
 # yarn
 yarn install
-
-# bun
-bun install
 ```
 
 Copy .env and update the values to match your environment (especially the NUXT_DATABASE_URL variable)
@@ -39,13 +42,10 @@ Start the development server on `http://localhost:3000`:
 npm run dev
 
 # pnpm
-pnpm run dev
+pnpm dev
 
 # yarn
 yarn dev
-
-# bun
-bun run dev
 ```
 
 Changes to the database schema can be pushed directly to dev database
@@ -58,9 +58,6 @@ pnpm run db:push
 
 # yarn
 yarn run db:push
-
-# bun
-bun run db:push
 ```
 
 To commit the schema changes for them to be applied automatically in production, generate a migration.

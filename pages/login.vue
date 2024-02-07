@@ -4,10 +4,13 @@ import {z} from 'zod'
 import {useFormErrorMapper} from "~/composables/form";
 import {isApiError} from "~/utils/isApiError";
 
-const user = useUser()
+const localePath = useLocalePath();
+const user = useUser();
 const toast = useToaster();
-if (user.value)
-  await navigateTo('/app')
+
+if (user.value) {
+  await navigateTo(localePath('/app'));
+}
 
 const schema = z.object({
   email: z.string().email('Invalid email'),
@@ -31,7 +34,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       body: event.data,
     });
 
-    await navigateTo('/app')
+    await navigateTo(localePath('/app'));
   }
   catch (error) {
     if(isApiError(error) && !useFormErrorMapper(form, error))  {
@@ -43,12 +46,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
 <template>
   <h1 class="text-3xl font-medium mb-4 text-center mt-12 my-8">
-    Sign in
+    {{ $t('signIn') }}
   </h1>
   <UCard class="max-w-sm mx-auto ">
     <UButton block class="mb-4" variant="outline" color="gray" to="/auth/google" external>
       <UIcon name="i-logos-google-icon" class="h-6 w-6 m-1"/>
-      Sign in with Google
+      {{ $t('signInGoogle') }}
     </UButton>
     <UDivider class="my-4" label="OR"/>
     <UAlert v-if="errorMessage" :title="errorMessage" class="mb-2" variant="soft" color="orange"/>
@@ -62,12 +65,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       </UFormGroup>
 
       <UButton type="submit">
-        Submit
+        {{ $t('submit') }}
       </UButton>
       <p class="text-sm mt-4">
-        Don't have an account?
+        {{ $t('noAccount') }}
         <NuxtLink to="/signup" class="text-primary">
-          Sign up
+          {{ $t('signUp') }}
         </NuxtLink>
       </p>
     </UForm>
