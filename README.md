@@ -1,8 +1,8 @@
 # UseNuxt Starter
 
-- Logging : [Logrocket](https://logrocket.com/) : https://nuxt.com/modules/logrocket
-- Analytics : [Plausible](https://plausible.io/) : 
-- Translation : [i18n](https://i18n.nuxtjs.org/) : https://nuxt.com/modules/i18n
+- Logging : [Sentry](https://sentry.io/)
+- Analytics : [Plausible](https://plausible.io/)
+- Translation : [i18n](https://i18n.nuxtjs.org/) with [i18n Nuxt Module](https://nuxt.com/modules/i18n)
 - Authentication : [Lucia](https://lucia-auth.com/)
 - ORM : [Drizzle](https://orm.drizzle.team/)
 
@@ -32,6 +32,16 @@ If you don't alread have a Postgres database, spin one up quickly with docker.
 ```bash
 docker run -p 5432:5432 --name postgres -e POSTGRES_PASSWORD=postgres -d postgres
 ```
+
+### Sentry
+
+Enable readable stacktraces on Sentry  
+
+```bash
+npx @sentry/wizard@latest -i sourcemaps
+```
+
+See the [doc](https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/) for more informations
 
 ## Development Server
 
